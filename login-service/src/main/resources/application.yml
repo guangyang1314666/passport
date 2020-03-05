@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    username: guangyang
+    password: SRNDxrhc=1314
+    url: jdbc:mysql://192.168.1.200:3306/xdclass?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 使用我们自己的druid数据源
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    initialSize: 10 #初始化连接个数
+    minIdle: 5    #最小连接个数
+    maxActive: 500 #最大连接个数
+    maxWait: 60000 #最大等待时间
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+    filters: stat,wall,log4j
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+
+
+mybatis:
+  # config-location和configuration不能同时配置，否则会抛出异常
+  # 一般只配置configuration即可，会自动找到mybatis全局配置文件
+  #  config-location: classpath:mybatis/mybatis-config.xml
+  mapper-locations: classpath:mapper/*Mapper.xml
+  # 对应实体类的路径，只能指定具体的包，多个配置可以使用英文逗号隔开
+  type-aliases-package: com.guangyang.xdclass.bean
+  configuration:
+    # Mybatis SQL语句控制台打印
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开启驼峰命名规则
+    # 在数据库中字段可以采用驼峰命名规则，mybatis会把 下划线去掉并把下划线后面的首字母认为是大写
+    map-underscore-to-camel-case: true
