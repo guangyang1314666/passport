@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guangyang.development.register.mapper.UserMapper">
+    <select id="findUserById" parameterType="String" resultType="com.guangyang.development.bean.User">
+        select * from `user` where id = #{id}
+    </select>
+
+    <select id="fingUserByUsername" parameterType="String" resultType="com.guangyang.development.bean.User">
+        select * from `user` where username = #{username}
+    </select>
+
+    <select id="findUserByOpenId" parameterType="String" resultType="com.guangyang.development.bean.User">
+        select * from `user` where openid = #{openId}
+    </select>
+
+    <insert id="saveUser" parameterType="com.guangyang.development.bean.User" >
+        INSERT INTO xdclass.user (
+            openid,
+            username,
+            nickname,
+            password,
+            head_img,
+            phone,
+            sign,
+            sex,
+            city,
+            update_time,
+            create_time,
+            channel,
+            platform
+        )
+        VALUES
+            (
+                NULL,
+                #{username},
+                #{nickname},
+                #{password},
+                #{headImg},
+                #{phone},
+                '',
+                '-1',
+                #{city},
+                #{updateTime},
+                #{createTime},
+                #{channel},
+                #{platform}
+        );
+    </insert>
+
+
+
+<!--    <insert id="saveVideo" parameterType="com.guangyang.development.bean.Video" >-->
+<!--        INSERT INTO video (-->
+<!--            title,-->
+<!--            summary,-->
+<!--            cover_img,-->
+<!--            view_num,-->
+<!--            price,-->
+<!--            create_time,-->
+<!--            online,-->
+<!--            point-->
+<!--        )-->
+<!--        VALUES-->
+<!--            (-->
+<!--                #{title},-->
+<!--                #{summary},-->
+<!--                #{coverImg},-->
+<!--                #{viewNum},-->
+<!--                #{price},-->
+<!--                #{createTime},-->
+<!--                #{online},-->
+<!--                #{point}-->
+<!--            )-->
+<!--    </insert>-->
+
+<!--    <update id="updateVideo" parameterType="com.guangyang.development.bean.Video" >-->
+<!--        update video set title = #{title} where id = #{id}-->
+<!--    </update>-->
+
+<!--    <delete id="deleteVideoById" parameterType="com.guangyang.development.bean.Video">-->
+<!--        delete from video where id = #{id}-->
+<!--    </delete>-->
+</mapper>

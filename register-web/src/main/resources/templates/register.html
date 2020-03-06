@@ -6,18 +6,18 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <meta name="Keywords" content="网站关键词">
     <meta name="Description" content="网站介绍">
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/iconfont.css">
-    <link rel="stylesheet" href="/static/css/reg.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/iconfont.css">
+    <link rel="stylesheet" href="/css/reg.css">
 </head>
 <body>
     <div id="ajax-hook"></div>
     <div class="wrap">
         <div class="wpn">
             <div class="form-data pos">
-                <a href=""><img src="/static/img/logo.png" class="head-logo"></a>
+                <a href=""><img src="/img/logo.png" class="head-logo"></a>
                 <!--<p class="tel-warn hide"><i class="icon-warn"></i></p>-->
-                <form th:action="'http://passport.gmall.com:8085/doRegister.html?ReturnUrl=' + ${ReturnUrl}" method="post">
+                <form action="http://reg.development.com/do/register" method="post">
 
 					<div class="p-input pos">
                         <label for="email">邮箱</label>
@@ -78,8 +78,8 @@
             </div>
         </div>
     </div>
-    <script src="/static/js/jquery.js"></script>
-    <script src="/static/js/agree.js"></script>
-    <script src="/static/js/reg.js"></script>
+    <script src="/js/jquery.js"></script>
+    <script src="/js/agree.js"></script>
+    <script src="/js/register.js"></script>
 </body>
 </html>

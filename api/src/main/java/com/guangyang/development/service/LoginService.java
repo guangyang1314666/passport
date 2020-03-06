@@ -20,4 +20,11 @@ public interface LoginService {
      * @return
      */
     Result returnUrl(Result result);
+
+    /**
+     * 使用本网站账号登录
+     * @param returnUrl
+     * @return
+     */
+    Result login(String returnUrl,User user);
 }

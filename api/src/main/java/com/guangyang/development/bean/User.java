@@ -33,6 +33,11 @@ public class User implements Serializable {
   private Date createTime;
 
   /**
+   * 盐值
+   */
+  private String salt;
+
+  /**
    * 平台(1=PC,2=Wap,3=Android,4=iOS)
    */
   private String platform;
@@ -41,6 +46,14 @@ public class User implements Serializable {
    */
   private String channel;
   private java.util.Date updateTime;
+
+  public String getSalt() {
+    return salt;
+  }
+
+  public void setSalt(String salt) {
+    this.salt = salt;
+  }
 
   public String getPlatform() {
     return platform;

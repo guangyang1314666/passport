@@ -8,14 +8,14 @@ import com.guangyang.development.constant.SocialConstant;
 import com.guangyang.development.key.UserKey;
 import com.guangyang.development.key.UserSocialKey;
 import com.guangyang.development.key.WeChatSocialKey;
-import com.guangyang.development.key.WeiBoSocialKey;
 import com.guangyang.development.login.mapper.UserMapper;
-import com.guangyang.development.login.mapper.UserSocialMapper;
 import com.guangyang.development.service.WeChatLoginService;
 import com.guangyang.development.social.WeChat;
+import com.guangyang.development.social.Weibo;
 import com.guangyang.development.utils.CacheUtil;
 import com.guangyang.development.utils.HttpclientUtil;
 import com.guangyang.development.utils.WeChatConnectionUtil;
+import com.guangyang.development.utils.encrypt.Encrypt;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,10 +43,10 @@ public class WeChatLoginServiceImpl implements WeChatLoginService {
     UserMapper userMapper;
 
     @Autowired
-    UserSocialMapper userSocialMapper;
+    CacheUtil cacheUtil;
 
     @Autowired
-    CacheUtil cacheUtil;
+    Encrypt encrypt;
 
     @Override
     public JsonData loginUrl(String returnUrl) throws UnsupportedEncodingException {
@@ -109,7 +109,7 @@ public class WeChatLoginServiceImpl implements WeChatLoginService {
         if (cacheUser != null) {
             String token = getTokenFromPassport(cacheUser);
             // 命中缓存
-            return Result.builder().setResult(returnUrlRedirect)
+            return Result.builder().setReturnUrl(returnUrlRedirect)
                     .setResult(Result.SUCCESS)
                     .setMsg("用户登录成功")
                     .setToken(token);
@@ -186,6 +186,24 @@ public class WeChatLoginServiceImpl implements WeChatLoginService {
                     .setResult(Result.SUCCESS);
         }
 
+        // 查询缓存
+        User cacheUser = cacheUtil.get(UserKey.getUsernameKey(user.getUsername()), User.class);
+        if (cacheUser != null) {
+            // 判断用户是否已经绑定其他的账号
+            if (StringUtils.isNotBlank(cacheUser.getOpenid())) {
+                return new Result()
+                        .setMsg("用户已经绑定其他账号")
+                        .setResult(Result.ERROR);
+            }
+
+            // 比较密码
+            boolean b = encrypt.encryptData(user.getPassword(), cacheUser.getSalt()).equals(cacheUser.getPassword());
+            if (b) {
+                // 将Qq的用户信息，更新到User表中
+                return updateUserToCacheAndDb(cacheUser , cacheWeChat , returnUrl);
+            }
+        }
+
         // 查询数据库User表
         User dbUser = userMapper.fingUserByUsername(user.getUsername());
 
@@ -201,28 +219,39 @@ public class WeChatLoginServiceImpl implements WeChatLoginService {
                 return Result.builder().setMsg("密码错误")
                         .setResult(Result.ERROR);
             }
-
-            dbUser.setChannel(SocialConstant.CHANNEL_WEIBO);
-            dbUser.setOpenid(cacheWeChat.getOpenId());
-            dbUser.setHeadImg(cacheWeChat.getHeadimgurl());
-            dbUser.setCreateTime(new Date());
-            dbUser.setNickname(cacheWeChat.getNickname());
-            dbUser.setCity(cacheWeChat.getCity());
-            dbUser.setPlatform(SocialConstant.PLATFORM_PC);
-
-            // 更新缓存和数据库
-            userMapper.updateUser(dbUser);
-            cacheUtil.set(WeChatSocialKey.getUuidKey(uuid) , dbUser , 60*60*24*2);
-            String token = getTokenFromPassport(dbUser);
-            return Result.builder().setReturnUrl(returnUrl)
-                    .setResult(Result.SUCCESS)
-                    .setMsg("用户登录成功")
-                    .setToken(token);
+            // 更新User到缓存和数据库中
+            return updateUserToCacheAndDb(dbUser , cacheWeChat , returnUrl);
         }
-
         return Result.builder().setResult(Result.ERROR)
                 .setReturnUrl("")
                 .setMsg("用户名不存在，可以去创建哦");
+    }
+
+    /**
+     * 更新用户信息到缓存和数据库中
+     * @param user
+     * @param weChat
+     * @param returnUrl
+     * @return
+     */
+    private Result updateUserToCacheAndDb(User user, WeChat weChat, String returnUrl) {
+        user.setChannel(SocialConstant.CHANNEL_WEIBO);
+        user.setOpenid(weChat.getOpenId());
+        user.setHeadImg(weChat.getHeadimgurl());
+        user.setCreateTime(new Date());
+        user.setNickname(weChat.getNickname());
+        user.setCity(weChat.getCity());
+        user.setPlatform(SocialConstant.PLATFORM_PC);
+
+        // 更新缓存和数据库
+        userMapper.updateUser(user);
+        cacheUtil.set(UserKey.getUsernameKey(user.getUsername()) , user , 60*60*24*2);
+        cacheUtil.set(UserKey.getOpenIdKey(weChat.getOpenId()) , user , 60*60*24*2);
+        String token = getTokenFromPassport(user);
+        return Result.builder().setReturnUrl(returnUrl)
+                .setResult(Result.SUCCESS)
+                .setMsg("用户登录成功")
+                .setToken(token);
     }
 
 

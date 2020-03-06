@@ -1,11 +1,5 @@
 package com.guangyang.development.login;
 
-import com.alibaba.fastjson.JSON;
-import com.guangyang.development.bean.Result;
-import com.guangyang.development.bean.User;
-import com.guangyang.development.bean.UserSocial;
-import com.guangyang.development.constant.SocialConstant;
-import com.guangyang.development.key.QqSocialKey;
 import com.guangyang.development.social.Qq;
 
 import javax.xml.transform.Source;
@@ -13,24 +7,7 @@ import java.util.Optional;
 
 public class Test {
 
-    @org.junit.Test
-    public void test(){
-        Qq qq = new Qq();
-        Optional<Qq> cacheQq = Optional.ofNullable(qq);
 
-        Optional<UserSocial> userSocial = cacheQq.map(q -> {
-            System.out.println("判断UserSocial是否为空");
-            UserSocial dbUserSocial = null;
-            return dbUserSocial;
-        }).map(q1 -> {
-            System.out.println("非空");;
-            return q1;
-        });
-
-        userSocial.ifPresent(u -> {
-            System.out.println("非空数据");
-        });
-    }
 
     @org.junit.Test
     public void test1(){

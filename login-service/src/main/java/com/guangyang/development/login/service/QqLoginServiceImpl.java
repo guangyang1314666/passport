@@ -11,13 +11,13 @@ import com.guangyang.development.key.QqSocialKey;
 import com.guangyang.development.key.UserKey;
 import com.guangyang.development.key.ViewUuidKey;
 import com.guangyang.development.login.mapper.UserMapper;
-import com.guangyang.development.login.mapper.UserSocialMapper;
 import com.guangyang.development.service.QqLoginService;
 import com.guangyang.development.social.Qq;
 import com.guangyang.development.social.ViewUuid;
 import com.guangyang.development.utils.CacheUtil;
 import com.guangyang.development.utils.HttpclientUtil;
 import com.guangyang.development.utils.QQConnectionUtil;
+import com.guangyang.development.utils.encrypt.Encrypt;
 import net.bytebuddy.asm.Advice;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,11 +40,12 @@ public class QqLoginServiceImpl implements QqLoginService {
     @Autowired
     CacheUtil cacheUtil;
 
-    @Autowired
-    UserSocialMapper userSocialMapper;
 
     @Autowired
     UserMapper userMapper;
+
+    @Autowired
+    Encrypt encrypt;
 
     @Override
     public Result loginUrl(String returnUrl) {
@@ -143,9 +144,6 @@ public class QqLoginServiceImpl implements QqLoginService {
     public Result doQqBind(String uuid, User user) {
         // 1. 从缓存中获取用户的信息
         String username = user.getUsername();
-        // 对密码进行加密
-        String password = user.getPassword();
-
         // 从缓存中获取Qq对象
         Qq qq = cacheUtil.get(QqSocialKey.getUuidKey(uuid), Qq.class);
 
@@ -157,6 +155,24 @@ public class QqLoginServiceImpl implements QqLoginService {
 
         // 用户的回调地址
         String returnUrl = Optional.ofNullable(qq).map(Qq::getReturnUrl).orElse("http://development.com");
+
+        // 查询缓存User
+        User cacheUser = cacheUtil.get(UserKey.getUsernameKey(username), User.class);
+        if (cacheUser != null) {
+            // 判断用户是否已经绑定其他的账号
+            if (StringUtils.isNotBlank(cacheUser.getOpenid())) {
+                return new Result()
+                        .setMsg("用户已经绑定其他账号")
+                        .setResult(Result.ERROR);
+            }
+
+            // 比较密码
+            boolean b = encrypt.encryptData(user.getPassword(), cacheUser.getSalt()).equals(cacheUser.getPassword());
+            if (b) {
+                // 将Qq的用户信息，更新到User表中
+                return updateUserToCacheAndDb(cacheUser , qq , returnUrl);
+            }
+        }
 
         // 查询数据库的user表
         User dbUser = userMapper.fingUserByUsername(username);
@@ -172,44 +188,55 @@ public class QqLoginServiceImpl implements QqLoginService {
                         .setMsg("该账号已经绑定其他的账号，请试试其他账号");
             }
 
+            // 对密码进行加密
+            String password = encrypt.encryptData(user.getPassword() , dbUser.getSalt()) ;
             if (dbPassword.equals(password)) {
-
-                // 将Qq的用户信息，更新到User以及UserSocial表中
-                User newUser = new User();
-                newUser = dbUser;
-                if (qq.getGender().equals("男")) {
-                    newUser.setSex(UserConstant.SEX_F);
-                } else if(qq.getGender().equals("女")){
-                    newUser.setSex(UserConstant.SEX_M);
-                } else {
-                    newUser.setSex(UserConstant.SEX_N);
-                }
-                newUser.setCity(qq.getCity());
-                newUser.setNickname(qq.getNickname());
-                newUser.setCreateTime(new Date());
-                newUser.setOpenid(qq.getOpenid());
-                newUser.setChannel(SocialConstant.CHANNEL_QQ);
-                if (StringUtils.isNotBlank(dbUser.getHeadImg())) {
-                    newUser.setHeadImg(qq.getFigureurl_qq_1());
-                }
-
-                // 将用户数据更新到数据库中
-                userMapper.updateUser(newUser);
-                // 将用户信息更新到缓存中
-                cacheUtil.set(UserKey.getOpenIdKey(qq.getOpenid()),newUser,60*12);
-
-                return Result.builder().setReturnUrl(returnUrl)
-                        .setMsg("成功绑定账号")
-                        .setData(newUser)
-                        .setResult(Result.SUCCESS);
+                return updateUserToCacheAndDb(dbUser , qq , returnUrl);
             }
-            return Result.builder().setResult(Result.ERROR)
-                    .setMsg("密码错误");
         }
 
-        return Result.builder().setMsg("用户名不存在")
+        return Result.builder().setMsg("用户名与密码不匹配")
                 .setResult(Result.ERROR);
 
+    }
+
+    /**
+     * 更新User表到数据库以及缓存中
+     * @param user 用户
+     * @param qq QQ用户对象
+     * @param returnUrl 回调地址
+     * @return
+     */
+    private Result updateUserToCacheAndDb(User user, Qq qq , String returnUrl) {
+        // 将Qq的用户信息，更新到User表中
+        User newUser = new User();
+        newUser = user;
+        if (qq.getGender().equals("男")) {
+            newUser.setSex(UserConstant.SEX_F);
+        } else if(qq.getGender().equals("女")){
+            newUser.setSex(UserConstant.SEX_M);
+        } else {
+            newUser.setSex(UserConstant.SEX_N);
+        }
+        newUser.setCity(qq.getCity());
+        newUser.setNickname(qq.getNickname());
+        newUser.setCreateTime(new Date());
+        newUser.setOpenid(qq.getOpenid());
+        newUser.setChannel(SocialConstant.CHANNEL_QQ);
+        if (StringUtils.isNotBlank(user.getHeadImg())) {
+            newUser.setHeadImg(qq.getFigureurl_qq_1());
+        }
+
+        // 将用户数据更新到数据库中
+        userMapper.updateUser(newUser);
+        // 将用户信息更新到缓存中
+        cacheUtil.set(UserKey.getOpenIdKey(qq.getOpenid()),newUser,60*12);
+        cacheUtil.set(UserKey.getUsernameKey(user.getUsername()),newUser,60*12);
+
+        return Result.builder().setReturnUrl(returnUrl)
+                .setMsg("成功绑定账号")
+                .setData(newUser)
+                .setResult(Result.SUCCESS);
     }
 
     /**

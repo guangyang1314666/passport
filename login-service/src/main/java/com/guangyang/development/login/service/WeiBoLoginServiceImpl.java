@@ -3,21 +3,16 @@ package com.guangyang.development.login.service;
 import com.alibaba.dubbo.config.annotation.Service;
 import com.guangyang.development.bean.Result;
 import com.guangyang.development.bean.User;
-import com.guangyang.development.bean.UserSocial;
 import com.guangyang.development.constant.SocialConstant;
-import com.guangyang.development.constant.UserConstant;
 import com.guangyang.development.key.UserKey;
-import com.guangyang.development.key.UserSocialKey;
-import com.guangyang.development.key.ViewUuidKey;
 import com.guangyang.development.key.WeiBoSocialKey;
 import com.guangyang.development.login.mapper.UserMapper;
-import com.guangyang.development.login.mapper.UserSocialMapper;
 import com.guangyang.development.service.WeiBoLoginService;
-import com.guangyang.development.social.ViewUuid;
 import com.guangyang.development.social.Weibo;
 import com.guangyang.development.utils.CacheUtil;
 import com.guangyang.development.utils.HttpclientUtil;
 import com.guangyang.development.utils.WeiBoConnectionUtil;
+import com.guangyang.development.utils.encrypt.Encrypt;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,10 +35,10 @@ public class WeiBoLoginServiceImpl implements WeiBoLoginService {
     CacheUtil cacheUtil;
 
     @Autowired
-    UserSocialMapper userSocialMapper;
+    UserMapper userMapper;
 
     @Autowired
-    UserMapper userMapper;
+    Encrypt encrypt;
 
     @Override
     public Result loginUrl(String returnUrl) {
@@ -146,7 +141,6 @@ public class WeiBoLoginServiceImpl implements WeiBoLoginService {
 
     @Override
     public Result doBindUser(User user, String uuid) {
-
         // 从缓存中获取WeiBo数据
         Weibo cacheWeiBo = getWeiBOFromCache(uuid);
 
@@ -157,6 +151,28 @@ public class WeiBoLoginServiceImpl implements WeiBoLoginService {
 
         // 获取用户的回调地址
         String returnUrl = cacheWeiBo.getReturnUrl();
+
+        // 查询缓存
+        User cacheUser = cacheUtil.get(UserKey.getUsernameKey(user.getUsername()), User.class);
+        if (cacheUser != null) {
+            // 判断open是否为空,为空说明，该账号没有绑定其他的账号
+            if (StringUtils.isBlank(cacheUser.getOpenid())) {
+                return Result.builder().setResult(Result.WARN)
+                        .setMsg("该账号已经绑定其他微博账号");
+            }
+
+            // 对用户密码进行加密处理
+            String encryptPassword = encrypt.encryptData(user.getPassword(), cacheUser.getSalt());
+            if (!encryptPassword.equals(cacheUser.getPassword())) {
+                return Result.builder().setMsg("用户名与密码不匹配")
+                        .setResult(Result.ERROR);
+            }
+
+            return Result.builder().setResult(Result.SUCCESS)
+                    .setMsg("绑定成功")
+                    .setReturnUrl(returnUrl);
+        }
+
 
         // 开始查询数据库
         User dbUser = userMapper.fingUserByUsername(user.getUsername());
@@ -169,7 +185,7 @@ public class WeiBoLoginServiceImpl implements WeiBoLoginService {
 
             // 匹配密码
             if (!dbUser.getPassword().equals(user.getPassword())) {
-                return Result.builder().setMsg("密码不正确")
+                return Result.builder().setMsg("用户名与密码不匹配")
                         .setResult(Result.ERROR);
             }
 
@@ -186,6 +202,7 @@ public class WeiBoLoginServiceImpl implements WeiBoLoginService {
             // 将用户更新到缓存以及数据库中
             userMapper.updateUser(dbUser);
             cacheUtil.set(UserKey.getOpenIdKey(userInfo.getUid()) , dbUser ,60*60*24*2);
+            cacheUtil.set(UserKey.getUsernameKey(user.getUsername()) , dbUser , 60*60*24*2);
             // 向认证中心获取token
             String token = getTokenFromPassport(dbUser);
             return Result.builder().setMsg("绑定成功")

@@ -38,6 +38,8 @@
                 <p class="message">短信登录</p>
             </div>
             <div class="form1">
+                <input type="hidden" value="123" th:value="${return_url}" id="ReturnUrl" />
+                <input type="hidden" th:value="${uuid}" id="uuid" />
                 <p class="p-input pos">
 <!--                    <label for="username">用户名</label>-->
                     <input type="text" id="username" autocomplete="off" placeholder="请输入用户名" >
@@ -72,7 +74,7 @@
                 </p>
             </div>
             <div class="r-forget cl">
-                <a href="/register.html" th:href="'/register.html?ReturnUrl=' + ${ReturnUrl}" class="z">账号注册</a>
+                <a href="http://reg.development.com/register" class="z">账号注册</a>
                 <a href="./getpass.html" class="y">忘记密码</a>
             </div>
             <button class="lang-btn off log-btn">登录</button>
@@ -86,8 +88,6 @@
     </div>
 
     <!--底部-->
-    <input type="hidden" th:value="${return_url}" id="ReturnUrl" />
-    <input type="hidden" th:value="${uuid}" id="uuid" />
 </div>
 <script src="/js/jquery.js"></script>
 <script src="/js/agree.js"></script>

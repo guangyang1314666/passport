@@ -1,7 +1,6 @@
 package com.guangyang.development.login.mapper;
 
 import com.guangyang.development.bean.User;
-import com.guangyang.development.bean.UserSocial;
 import com.guangyang.development.provider.UserSqlProvider;
 import org.apache.ibatis.annotations.UpdateProvider;
 

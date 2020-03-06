@@ -1,5 +1,8 @@
 package com.guangyang.development.utils.encrypt;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class EncryptImpl implements Encrypt {
     @Override
     public String encryptData(String data, String salt) {
